@@ -89,10 +89,17 @@ export async function returnCheckout({ checkoutId, checkinCondition, usageMinute
     notes,
   }).eq('id', checkoutId)
 
+  // Fetch current counters then increment
+  const { data: inst } = await supabase
+    .from('tool_instances')
+    .select('cumulative_usage_minutes, cumulative_usage_parts')
+    .eq('id', checkout.instance_id)
+    .single()
+
   await supabase.from('tool_instances').update({
     status: 'available',
-    cumulative_usage_minutes: supabase.rpc('increment', { x: usageMinutes ?? 0 }),
-    cumulative_usage_parts: supabase.rpc('increment', { x: usageParts ?? 0 }),
+    cumulative_usage_minutes: (inst?.cumulative_usage_minutes ?? 0) + (usageMinutes ?? 0),
+    cumulative_usage_parts:   (inst?.cumulative_usage_parts   ?? 0) + (usageParts   ?? 0),
   }).eq('id', checkout.instance_id)
 
   if (checkout.wo_item_id) {
