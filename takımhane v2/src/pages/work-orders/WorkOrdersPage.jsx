@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { createCheckout, createQuickWO } from '@/services/checkout'
@@ -45,6 +46,7 @@ const EMPTY_WO = {
 // ── WO Detail Modal ───────────────────────────────────────────────
 function WODetailModal({ wo, machines, profiles, definitions, facilityId, onClose, onRefresh }) {
   const { profile } = useAuthStore()
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [tab, setTab] = useState('info')
   const [saving, setSaving] = useState(false)
@@ -166,6 +168,11 @@ function WODetailModal({ wo, machines, profiles, definitions, facilityId, onClos
             )}
           </div>
           <div className="flex gap-2">
+            {['magazine_comparison', 'measurement'].includes(wo.status) && (
+              <Button variant="secondary" size="sm" onClick={() => { onClose(); navigate(`/magazine/${wo.id}`) }}>
+                🔍 Magazin Karşılaştırma
+              </Button>
+            )}
             <Button variant="secondary" onClick={onClose}>Kapat</Button>
             {nextStatus && wo.status !== 'cancelled' && (
               <Button onClick={advanceStatus} loading={saving}>

@@ -140,7 +140,70 @@ function MagazineGrid({ machine, slots }) {
 }
 
 // ── Machine card ──────────────────────────────────────────────────
-function MachineCard({ machine, slots, activeWO }) {
+function HandoverNotes({ machineId, facilityId }) {
+  const { profile } = useAuthStore()
+  const [notes, setNotes] = useState([])
+  const [content, setContent] = useState('')
+  const [shift, setShift] = useState('morning')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    supabase.from('shift_handover_notes')
+      .select('*, profiles!shift_handover_notes_author_id_fkey(full_name)')
+      .eq('machine_id', machineId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => setNotes(data ?? []))
+  }, [machineId])
+
+  const save = async () => {
+    if (!content.trim()) return
+    setSaving(true)
+    await supabase.from('shift_handover_notes').insert({
+      facility_id: facilityId, machine_id: machineId,
+      author_id: profile.id, shift, note_date: new Date().toISOString().slice(0, 10),
+      content: content.trim(),
+    })
+    setContent('')
+    const { data } = await supabase.from('shift_handover_notes')
+      .select('*, profiles!shift_handover_notes_author_id_fkey(full_name)')
+      .eq('machine_id', machineId).order('created_at', { ascending: false }).limit(5)
+    setNotes(data ?? [])
+    setSaving(false)
+  }
+
+  const SHIFT_LABELS = { morning: 'Sabah', afternoon: 'Öğle', night: 'Gece' }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Vardiya Devir-Teslim Notları</p>
+      {notes.map((n) => (
+        <div key={n.id} className="rounded-lg bg-slate-700/30 px-3 py-2">
+          <p className="text-xs text-slate-400 mb-1">
+            {SHIFT_LABELS[n.shift] ?? n.shift} · {n.note_date} · {n.profiles?.full_name ?? '—'}
+          </p>
+          <p className="text-sm text-slate-200">{n.content}</p>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <select value={shift} onChange={(e) => setShift(e.target.value)}
+          className="rounded-lg border border-slate-600 bg-slate-700 px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 flex-shrink-0">
+          {Object.entries(SHIFT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <input value={content} onChange={(e) => setContent(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && save()}
+          placeholder="Not ekle… (Enter)"
+          className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none" />
+        <button onClick={save} disabled={saving || !content.trim()}
+          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 hover:bg-blue-500 transition-colors">
+          {saving ? '…' : 'Ekle'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function MachineCard({ machine, slots, activeWO, facilityId }) {
   const [expanded, setExpanded] = useState(false)
   const st = MACHINE_STATUS_MAP[machine.status] ?? MACHINE_STATUS_MAP.active
 
@@ -205,6 +268,11 @@ function MachineCard({ machine, slots, activeWO }) {
 
           {/* Magazine grid */}
           <MagazineGrid machine={machine} slots={slots} />
+
+          {/* Shift handover notes */}
+          <div className="border-t border-slate-700/50 pt-4">
+            <HandoverNotes machineId={machine.id} facilityId={facilityId} />
+          </div>
         </div>
       )}
     </div>
@@ -351,6 +419,7 @@ export default function CncStatusPage() {
                 machine={m}
                 slots={slots[m.id] ?? []}
                 activeWO={activeWOs[m.id] ?? null}
+                facilityId={profile.facility_id}
               />
               <button onClick={() => setStatusModal(m)}
                 className="absolute top-4 right-12 text-xs text-slate-600 hover:text-slate-400 transition-colors">
