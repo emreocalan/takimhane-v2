@@ -13,13 +13,7 @@ import CalibrationPage from '@/pages/calibration/CalibrationPage'
 import RecordsPage from '@/pages/records/RecordsPage'
 import CncStatusPage from '@/pages/cnc-status/CncStatusPage'
 import AdminPage from '@/pages/admin/AdminPage'
-
-function RequireAuth({ children }) {
-  const { session, loading } = useAuthStore()
-  if (loading) return <SplashScreen />
-  if (!session) return <Navigate to="/login" replace />
-  return children
-}
+import SetupWizard from '@/pages/setup/SetupWizard'
 
 function SplashScreen() {
   return (
@@ -32,6 +26,23 @@ function SplashScreen() {
   )
 }
 
+function RequireAuth({ children }) {
+  const { session, profile, loading } = useAuthStore()
+  if (loading) return <SplashScreen />
+  if (!session) return <Navigate to="/login" replace />
+  // Profile loaded but no facility yet → go to setup
+  if (profile && !profile.facility_id) return <Navigate to="/setup" replace />
+  return children
+}
+
+function RequireNoFacility({ children }) {
+  const { session, profile, loading } = useAuthStore()
+  if (loading) return <SplashScreen />
+  if (!session) return <Navigate to="/login" replace />
+  if (profile?.facility_id) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 export default function App() {
   const initialize = useAuthStore((s) => s.initialize)
   useEffect(() => { initialize() }, [initialize])
@@ -40,6 +51,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/setup" element={
+          <RequireNoFacility>
+            <SetupWizard />
+          </RequireNoFacility>
+        } />
         <Route
           path="/"
           element={
