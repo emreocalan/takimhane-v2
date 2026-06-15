@@ -15,6 +15,7 @@ const NAV = [
   { to: '/records',     icon: '📄', label: 'Kayıtlar & Denetim' },
   { section: 'İZLEME' },
   { to: '/cnc-status',  icon: '🖥️', label: 'CNC & Depo Durumu' },
+  { to: '/alarms',      icon: '🔔', label: 'Alarm Yönetimi' },
 ]
 
 export default function Sidebar({ onClose }) {

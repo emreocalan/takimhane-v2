@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAlarmStore } from '@/store/alarmStore'
 
 export default function Header({ onMenuClick }) {
   const { unreadCount, alarms, markRead } = useAlarmStore()
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-slate-700/50 bg-slate-900 px-4">
@@ -42,7 +44,13 @@ export default function Header({ onMenuClick }) {
             <div className="absolute right-0 top-12 z-50 w-80 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
                 <span className="text-sm font-semibold text-slate-100">Alarmlar</span>
-                <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-100">✕</button>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => { setOpen(false); navigate('/alarms') }}
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                    Tümü →
+                  </button>
+                  <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-100">✕</button>
+                </div>
               </div>
               <div className="max-h-80 overflow-y-auto divide-y divide-slate-700/50">
                 {alarms.length === 0 ? (

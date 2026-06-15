@@ -14,6 +14,7 @@ import RecordsPage from '@/pages/records/RecordsPage'
 import CncStatusPage from '@/pages/cnc-status/CncStatusPage'
 import AdminPage from '@/pages/admin/AdminPage'
 import SetupWizard from '@/pages/setup/SetupWizard'
+import AlarmsPage from '@/pages/alarms/AlarmsPage'
 
 function SplashScreen() {
   return (
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="records"      element={<RecordsPage />} />
           <Route path="cnc-status"   element={<CncStatusPage />} />
           <Route path="admin"        element={<AdminPage />} />
+          <Route path="alarms"       element={<AlarmsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
