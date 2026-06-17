@@ -16,6 +16,7 @@ import AdminPage from '@/pages/admin/AdminPage'
 import SetupWizard from '@/pages/setup/SetupWizard'
 import AlarmsPage from '@/pages/alarms/AlarmsPage'
 import MagazineComparisonPage from '@/pages/magazine/MagazineComparisonPage'
+import ToolFinderPage from '@/pages/tool-finder/ToolFinderPage'
 
 function SplashScreen() {
   return (
@@ -78,7 +79,8 @@ export default function App() {
           <Route path="cnc-status"   element={<CncStatusPage />} />
           <Route path="admin"        element={<AdminPage />} />
           <Route path="alarms"       element={<AlarmsPage />} />
-          <Route path="magazine/:woId" element={<MagazineComparisonPage />} />
+          <Route path="magazine/:woId"  element={<MagazineComparisonPage />} />
+          <Route path="tool-finder"    element={<ToolFinderPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
