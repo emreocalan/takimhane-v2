@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { createCheckout } from '@/services/checkout'
+import toast from '@/lib/toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -63,8 +64,9 @@ function CheckoutModal({ instance, onClose, onDone }) {
         woId: null,
         facilityId: profile.facility_id,
       })
+      toast.success('Zimmet verildi.')
       onDone()
-    } catch (e) { setError(e.message) }
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 
@@ -104,8 +106,9 @@ function InstanceDetailModal({ instance, locations, onClose, onDone }) {
         status, location_id: locationId || null, notes: notes || null,
       }).eq('id', instance.id)
       if (err) throw err
+      toast.success('Kayıt güncellendi.')
       onDone()
-    } catch (e) { setError(e.message) }
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 
@@ -246,7 +249,8 @@ export default function StockPage() {
       })
       if (err) throw err
       await load(); setAddModal(false)
-    } catch (e) { setAddError(e.message) }
+      toast.success('Takım kaydedildi.')
+    } catch (e) { setAddError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 

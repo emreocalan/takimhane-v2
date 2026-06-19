@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { createCheckout, createQuickWO } from '@/services/checkout'
+import toast from '@/lib/toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -51,6 +52,7 @@ function WODetailModal({ wo, machines, profiles, definitions, facilityId, onClos
   const [tab, setTab] = useState('info')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [confirmCancel, setConfirmCancel] = useState(false)
   const [addItemForm, setAddItemForm] = useState({ definition_id: '', pot_number: '', nominal_length_mm: '', nominal_diameter_mm: '' })
   const [addingItem, setAddingItem] = useState(false)
   const [addItemError, setAddItemError] = useState('')
@@ -77,15 +79,19 @@ function WODetailModal({ wo, machines, profiles, definitions, facilityId, onClos
       if (nextStatus === 'completed') patch.completed_at = new Date().toISOString()
       const { error: err } = await supabase.from('work_orders').update(patch).eq('id', wo.id)
       if (err) throw err
+      toast.success(`Durum: ${WO_STATUS_MAP[nextStatus]?.label}`)
       onRefresh()
-    } catch (e) { setError(e.message) }
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 
   const cancelWO = async () => {
-    if (!window.confirm('İş emri iptal edilsin mi?')) return
-    await supabase.from('work_orders').update({ status: 'cancelled' }).eq('id', wo.id)
-    onRefresh()
+    setSaving(true)
+    try {
+      await supabase.from('work_orders').update({ status: 'cancelled' }).eq('id', wo.id)
+      toast.info('İş emri iptal edildi.')
+      onRefresh()
+    } finally { setSaving(false); setConfirmCancel(false) }
   }
 
   const addItem = async () => {
@@ -162,9 +168,16 @@ function WODetailModal({ wo, machines, profiles, definitions, facilityId, onClos
       title={<span className="font-mono">{wo.wo_code} <span className="text-sm text-slate-400 font-sans">— {wo.part_name ?? wo.part_no ?? 'İsimsiz'}</span></span>}
       footer={
         <div className="flex w-full items-center justify-between gap-3">
-          <div className="flex gap-2">
-            {wo.status !== 'cancelled' && wo.status !== 'completed' && (
-              <Button variant="danger" size="sm" onClick={cancelWO}>İptal Et</Button>
+          <div className="flex items-center gap-2">
+            {wo.status !== 'cancelled' && wo.status !== 'completed' && !confirmCancel && (
+              <Button variant="danger" size="sm" onClick={() => setConfirmCancel(true)}>İptal Et</Button>
+            )}
+            {confirmCancel && (
+              <>
+                <span className="text-xs text-red-400">Emin misiniz?</span>
+                <Button variant="danger" size="sm" onClick={cancelWO} loading={saving}>Evet, İptal Et</Button>
+                <Button variant="secondary" size="sm" onClick={() => setConfirmCancel(false)}>Vazgeç</Button>
+              </>
             )}
           </div>
           <div className="flex gap-2">
@@ -335,7 +348,8 @@ export default function WorkOrdersPage() {
       })
       if (err) throw err
       await load(); setCreateModal(false)
-    } catch (e) { setError(e.message) }
+      toast.success('İş emri oluşturuldu.')
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 

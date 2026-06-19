@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { returnCheckout } from '@/services/checkout'
+import toast from '@/lib/toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -43,8 +44,9 @@ function ReturnModal({ checkout, onClose, onDone }) {
         checkedInBy: profile.id,
         notes: form.notes || null,
       })
+      toast.success('İade alındı.')
       onDone()
-    } catch (e) { setError(e.message) }
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 

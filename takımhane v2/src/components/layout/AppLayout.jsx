@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import Toaster from '@/components/ui/Toaster'
 import { useAuthStore } from '@/store/authStore'
 import { useAlarmStore } from '@/store/alarmStore'
 
@@ -65,6 +66,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <Toaster />
     </div>
   )
 }

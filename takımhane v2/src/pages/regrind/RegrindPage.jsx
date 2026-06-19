@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
+import toast from '@/lib/toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -292,6 +293,7 @@ export default function RegrindPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [filterStatus, setFilterStatus] = useState('active')
+  const [confirmScrapId, setConfirmScrapId] = useState(null)
   const setOF = (k, v) => setOrderForm((f) => ({ ...f, [k]: v }))
 
   const load = useCallback(async () => {
@@ -343,18 +345,20 @@ export default function RegrindPage() {
       if (e) throw e
       await load(); setCreateOrder(false)
       setOrderForm({ regrinder_id: '', deadline_date: '', notes_before: '' })
-    } catch (e) { setError(e.message) }
+      toast.success('Bileme siparişi oluşturuldu.')
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 
   const approveScrap = async (scrap) => {
-    if (!window.confirm('Bu bertarafı onaylıyor musunuz? Onay sonrası kayıt kilitlenir.')) return
     await supabase.from('scrap_records').update({
       approved_by: profile.id,
       approved_at: new Date().toISOString(),
       is_locked: true,
     }).eq('id', scrap.id)
     await supabase.from('tool_instances').update({ status: 'scrapped' }).eq('id', scrap.instance_id)
+    toast.success('Bertaraf onaylandı ve kayıt kilitlendi.')
+    setConfirmScrapId(null)
     await load()
   }
 
@@ -438,8 +442,15 @@ export default function RegrindPage() {
               <div className="text-right text-xs text-slate-500 flex-shrink-0">
                 <p>{new Date(s.proposed_at).toLocaleDateString('tr-TR')}</p>
               </div>
-              {!s.is_locked && (
-                <Button size="sm" variant="danger" onClick={() => approveScrap(s)}>Onayla</Button>
+              {!s.is_locked && confirmScrapId !== s.id && (
+                <Button size="sm" variant="danger" onClick={() => setConfirmScrapId(s.id)}>Onayla</Button>
+              )}
+              {!s.is_locked && confirmScrapId === s.id && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400 whitespace-nowrap">Emin misiniz?</span>
+                  <Button size="sm" variant="danger" onClick={() => approveScrap(s)}>Evet</Button>
+                  <Button size="sm" variant="secondary" onClick={() => setConfirmScrapId(null)}>Hayır</Button>
+                </div>
               )}
             </div>
           ))}

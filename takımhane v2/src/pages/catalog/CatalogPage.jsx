@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
+import toast from '@/lib/toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
@@ -20,6 +21,31 @@ const EMPTY_FORM = {
 const STATUS_MAP = {
   true:  { label: 'Aktif', cls: 'badge-ok' },
   false: { label: 'Pasif', cls: 'badge-info' },
+}
+
+// Daraltılabilir form bölümü
+function FormSection({ title, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between mb-3 group"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 group-hover:text-slate-400 transition-colors">
+          {title}
+        </p>
+        <svg
+          className={`h-3.5 w-3.5 text-slate-600 transition-transform ${open ? 'rotate-0' : '-rotate-90'}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && children}
+    </section>
+  )
 }
 
 // Dynamic EAV field renderer
@@ -196,7 +222,8 @@ export default function CatalogPage() {
       }
 
       await load(); setModal(false)
-    } catch (e) { setError(e.message) }
+      toast.success(editing ? 'Tanım güncellendi.' : 'Yeni tanım oluşturuldu.')
+    } catch (e) { setError(e.message); toast.error(e.message) }
     finally { setSaving(false) }
   }
 
@@ -270,16 +297,17 @@ export default function CatalogPage() {
         emptyText={loading ? 'Yükleniyor…' : 'Katalog boş — ilk tanımı ekleyin'} />
 
       {/* Create / Edit Modal */}
-      <Modal open={modal} onClose={() => setModal(false)} size="lg"
+      <Modal open={modal} onClose={() => setModal(false)} size="xl"
         title={editing ? `Tanım Düzenle — ${form.internal_code}` : 'Yeni Takım Tanımı'}
         footer={<><Button variant="secondary" onClick={() => setModal(false)}>İptal</Button><Button onClick={save} loading={saving}>{editing ? 'Kaydet' : 'Oluştur'}</Button></>}>
-        <div className="space-y-5">
-          {/* Temel bilgiler */}
-          <section>
+        <div className="space-y-1 divide-y divide-slate-700/50">
+
+          {/* Temel Bilgiler — her zaman açık */}
+          <div className="pb-5">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Temel Bilgiler</p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <Input label="İç Kod" required value={form.internal_code} onChange={(e) => set('internal_code', e.target.value)} placeholder="KTM-001" />
-              <Input label="Takım Adı" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Karbür Freze D12" />
+              <Input label="Takım Adı" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Karbür Freze D12" className="col-span-2" />
               <Select label="Varlık Tipi" required
                 options={toolTypes.map((t) => ({ value: t.id, label: t.name }))}
                 value={form.tool_type_id} onChange={(e) => set('tool_type_id', e.target.value)} />
@@ -290,55 +318,58 @@ export default function CatalogPage() {
               <Input label="Üretici Parça No" value={form.manufacturer_part_no} onChange={(e) => set('manufacturer_part_no', e.target.value)} />
               <Input label="ISO/DIN Kodu" value={form.iso_din_code} onChange={(e) => set('iso_din_code', e.target.value)} placeholder="ISO 1641 · DIN 844" className="col-span-2" />
             </div>
-          </section>
+          </div>
 
-          {/* Boyutlar */}
-          <section>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Nominal Boyutlar</p>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Nominal Uzunluk (mm)" type="number" value={form.nominal_length_mm} onChange={(e) => set('nominal_length_mm', e.target.value)} />
-              <Input label="Nominal Çap (mm)" type="number" value={form.nominal_diameter_mm} onChange={(e) => set('nominal_diameter_mm', e.target.value)} />
-              <Input label="Uzunluk Toleransı (mm)" type="number" value={form.length_tolerance_mm} onChange={(e) => set('length_tolerance_mm', e.target.value)} />
-              <Input label="Çap Toleransı (mm)" type="number" value={form.diameter_tolerance_mm} onChange={(e) => set('diameter_tolerance_mm', e.target.value)} />
-            </div>
-          </section>
-
-          {/* Ömür */}
-          <section>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Teorik Ömür</p>
-            <div className="grid grid-cols-3 gap-4">
-              <Input label="Süre (dakika)" type="number" value={form.theoretical_life_minutes} onChange={(e) => set('theoretical_life_minutes', e.target.value)} />
-              <Input label="Parça sayısı" type="number" value={form.theoretical_life_parts} onChange={(e) => set('theoretical_life_parts', e.target.value)} />
-              <Input label="Mesafe (metre)" type="number" value={form.theoretical_life_meters} onChange={(e) => set('theoretical_life_meters', e.target.value)} />
-            </div>
-          </section>
-
-          {/* Stok */}
-          <section>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Stok Kontrol</p>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Min. Stok" type="number" value={form.min_stock_level} onChange={(e) => set('min_stock_level', e.target.value)} />
-              <Input label="Yenileme Noktası" type="number" value={form.reorder_point} onChange={(e) => set('reorder_point', e.target.value)} />
-            </div>
-          </section>
-
-          {/* Dynamic attribute fields */}
-          {attrDefs.length > 0 && (
-            <section>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Ek Özellikler ({attrDefs[0]?.tool_type_id && toolTypes.find(t => t.id === form.tool_type_id)?.name})</p>
-              <div className="grid grid-cols-2 gap-4">
-                {attrDefs.map((a) => (
-                  <AttrField key={a.id} attr={a} value={attrValues[a.id]}
-                    onChange={(v) => setAttrValues((prev) => ({ ...prev, [a.id]: v }))} />
-                ))}
+          {/* Nominal Boyutlar */}
+          <div className="pt-4 pb-5">
+            <FormSection title="Nominal Boyutlar">
+              <div className="grid grid-cols-4 gap-4">
+                <Input label="Nominal Uzunluk (mm)" type="number" value={form.nominal_length_mm} onChange={(e) => set('nominal_length_mm', e.target.value)} />
+                <Input label="Nominal Çap (mm)" type="number" value={form.nominal_diameter_mm} onChange={(e) => set('nominal_diameter_mm', e.target.value)} />
+                <Input label="Uzunluk Toleransı (mm)" type="number" value={form.length_tolerance_mm} onChange={(e) => set('length_tolerance_mm', e.target.value)} />
+                <Input label="Çap Toleransı (mm)" type="number" value={form.diameter_tolerance_mm} onChange={(e) => set('diameter_tolerance_mm', e.target.value)} />
               </div>
-            </section>
+            </FormSection>
+          </div>
+
+          {/* Teorik Ömür */}
+          <div className="pt-4 pb-5">
+            <FormSection title="Teorik Ömür">
+              <div className="grid grid-cols-3 gap-4">
+                <Input label="Süre (dakika)" type="number" value={form.theoretical_life_minutes} onChange={(e) => set('theoretical_life_minutes', e.target.value)} />
+                <Input label="Parça Sayısı" type="number" value={form.theoretical_life_parts} onChange={(e) => set('theoretical_life_parts', e.target.value)} />
+                <Input label="Mesafe (metre)" type="number" value={form.theoretical_life_meters} onChange={(e) => set('theoretical_life_meters', e.target.value)} />
+              </div>
+            </FormSection>
+          </div>
+
+          {/* Stok Kontrol */}
+          <div className="pt-4 pb-5">
+            <FormSection title="Stok Kontrol">
+              <div className="grid grid-cols-3 gap-4">
+                <Input label="Min. Stok" type="number" value={form.min_stock_level} onChange={(e) => set('min_stock_level', e.target.value)} />
+                <Input label="Yenileme Noktası" type="number" value={form.reorder_point} onChange={(e) => set('reorder_point', e.target.value)} />
+                <Input label="Notlar" value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+              </div>
+            </FormSection>
+          </div>
+
+          {/* Ek Özellikler (EAV — dinamik) */}
+          {attrDefs.length > 0 && (
+            <div className="pt-4 pb-2">
+              <FormSection title={`Ek Özellikler — ${toolTypes.find(t => t.id === form.tool_type_id)?.name ?? ''}`}>
+                <div className="grid grid-cols-3 gap-4">
+                  {attrDefs.map((a) => (
+                    <AttrField key={a.id} attr={a} value={attrValues[a.id]}
+                      onChange={(v) => setAttrValues((prev) => ({ ...prev, [a.id]: v }))} />
+                  ))}
+                </div>
+              </FormSection>
+            </div>
           )}
 
-          {/* Notes */}
-          <Input label="Notlar" value={form.notes} onChange={(e) => set('notes', e.target.value)} />
         </div>
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
       </Modal>
     </div>
   )
